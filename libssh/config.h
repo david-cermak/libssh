@@ -273,7 +273,18 @@
 /* #undef WORDS_BIGENDIAN */
 
 #include <ctype.h>
+#include "esp_idf_version.h"
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 5, 0)
 #include "net/if.h"
+#else
+#define __VA_NARG__ 1
+#include "net/if.h"
+#undef __VA_NARG__
+
+const char *gai_strerror(int errcode);
+int socketpair(int domain, int type, int protocol, int sv[2]);
+#endif
+
 #include "termios.h"
 
 #define PF_UNIX AF_UNIX
