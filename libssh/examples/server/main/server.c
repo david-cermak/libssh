@@ -109,39 +109,10 @@ static ssh_channel channel_open(ssh_session session, void *userdata) {
     return channel;
 }
 
-static int load_hardcoded_key(ssh_bind sshbind)
+static int set_hostkey(ssh_bind sshbind)
 {
-    int rc;
-    static char opensshkey[] = "-----BEGIN OPENSSH PRIVATE KEY-----\n"
-                            "b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABFwAAAAdzc2gtcn\n"
-                            "NhAAAAAwEAAQAAAQEAt2tSRVSleWZNIJ3sAkrlov0sz55cZ8IPjd8jDcIVN8r5ppOclWcL\n"
-                            "GebRbJnQH2A7fRwluNPckDZH4WtObJu7uVliB8gHmreqYzjSYgeWtbch71r1CQ7QG+RqgL\n"
-                            "RBZXglRtm6GaAheRQg5E1RRrVjSh29U7GRe80zq3deVgmXb70w7XU3IhmIBgh6BcHUe+Lf\n"
-                            "bBUW/kiHnfYPZGvITZHOYSR2q/NP2BjCnV2gSsdKDVWQ27DvEfcB8xcEtg28l203Q/ZmvP\n"
-                            "oGuWvfcv1siVH7kb8IK+DYpejXnE5f85k9z/2i/HxJM3NnfIlKHgfPKTDBZLr463tT+xD4\n"
-                            "Fr+o3BGgoQAAA8hNX/+VTV//lQAAAAdzc2gtcnNhAAABAQC3a1JFVKV5Zk0gnewCSuWi/S\n"
-                            "zPnlxnwg+N3yMNwhU3yvmmk5yVZwsZ5tFsmdAfYDt9HCW409yQNkfha05sm7u5WWIHyAea\n"
-                            "t6pjONJiB5a1tyHvWvUJDtAb5GqAtEFleCVG2boZoCF5FCDkTVFGtWNKHb1TsZF7zTOrd1\n"
-                            "5WCZdvvTDtdTciGYgGCHoFwdR74t9sFRb+SIed9g9ka8hNkc5hJHar80/YGMKdXaBKx0oN\n"
-                            "VZDbsO8R9wHzFwS2DbyXbTdD9ma8+ga5a99y/WyJUfuRvwgr4Nil6NecTl/zmT3P/aL8fE\n"
-                            "kzc2d8iUoeB88pMMFkuvjre1P7EPgWv6jcEaChAAAAAwEAAQAAAQAbhzP1y9p5+eyhdJIz\n"
-                            "VeJZL/5FutLLj8id1luAeRyOHxyQ756Unb6AyK+tyPf/fYXwJQVUVBfKXRs0rdI7YrQuAU\n"
-                            "hBOrhJdD9SXPjWVaU86JtjPReBoIODbCi/4E3gWMPfelX/+pSLg4XcPe5w2lBok0YTBZd8\n"
-                            "KTQUC/pQl2fvEQjd3AN3PB4zZBEGCn7uEhu7GJACfSx3jfJgDU+9Z7vP2nL8Vj35M2wqtC\n"
-                            "2QVyDgw/VvtCHshH9GqYTCNaqQTUr78edwH4f3DTik1PCJ7KsmrtHBAoi4eC6lz5mU9rz3\n"
-                            "OQSt/IyseCcZZebPnHC3KuAwsQZcllnz48mCLi5lhSCxAAAAgQCG30hqEGkC/DXJCIpkla\n"
-                            "44bpyFi76U1zgqpQJ7zMpgBeLglAUsT2V4nlMxS/QPZGH2Glng1oc3eMz6gHvHlYqC/Dfj\n"
-                            "R5wBmd63ZoHnBvCuNHT1OKUN5fCS5yipIFo7JYywSSuqrsZpw2w9ppLtPHfcdg+hD5UoQI\n"
-                            "h2eZ8eQbUx7wAAAIEA5QrGTr6+xnH9ZuwM6J+2QD6W/RWBjuTsighbErm05nb8SKrlbglz\n"
-                            "X5WuaSYh5tr5PBVeqmcomzmKBUGui4Anz7704lBiTUcoH6zyZTkHI1koJ93tmQLgfRqqPD\n"
-                            "A40Iqc1O3bM1IBX63mg53Mb+6UHNALWTtM4oH320LS/DpxYv8AAACBAM0B5H0SrqEcDXVS\n"
-                            "qnw+AhleT7FOWu9wNAz1obx7aVCoTWBRz0DfKav0NRcrL9GNpBug5+6oWUkuIV2txqeDi+\n"
-                            "dUx/ZDzzYZiMe8hzFnD3m1XOCEZA5Q3lEwYQGZ7wDyxPVvhW2DNO5CsIMapIMNVfiAqnFs\n"
-                            "LkXl2FJJrZH81hxfAAAAEGRhdmlkQGRhdmlkLXdvcmsBAg==\n"
-                            "-----END OPENSSH PRIVATE KEY-----\n";
-
-    // Set the hardcoded private key directly
-    rc = ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_IMPORT_KEY_STR, opensshkey);
+    extern const uint8_t hostkey[]   asm("_binary_ssh_host_ed25519_key_start");
+    int rc = ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_IMPORT_KEY_STR, hostkey);
     if (rc != SSH_OK) {
         fprintf(stderr, "Failed to set hardcoded private key: %s\n", ssh_get_error(sshbind));
         return SSH_ERROR;
@@ -184,8 +155,12 @@ void app_main(void)
     ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_BINDPORT_STR, port);
     ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_LOG_VERBOSITY_STR, "1");
 
-    // Set host key (hardcoded for now)
-    load_hardcoded_key(sshbind);
+    // Set host key
+    rc = set_hostkey(sshbind);
+    if (rc != SSH_OK) {
+        ssh_bind_free(sshbind);
+        return;
+    }
 
     // Listen for connections
     rc = ssh_bind_listen(sshbind);
