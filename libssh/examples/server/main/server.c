@@ -9,41 +9,52 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 #include "nvs_flash.h"
 #include "esp_event.h"
-#include "esp_netif.h"
-#include "mqtt_client.h"
 #include "esp_log.h"
 #include "protocol_examples_common.h"
 #include <libssh/libssh.h>
 #include <libssh/server.h>
 #include <libssh/callbacks.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <signal.h>
-#include <unistd.h>
-#include <sys/wait.h>
 
 #define DEFAULT_PORT "2222"
-#define DEFAULT_USERNAME "DAVID"
+#define DEFAULT_USERNAME "user"
 #define DEFAULT_PASSWORD "password"
 
 static int authenticated = 0;
 static int tries = 0;
 static ssh_channel channel = NULL;
 
-// Forward declarations
+
+// Callbacks
+static int shell_request(ssh_session session, ssh_channel channel, void *userdata)
+{
+    printf("[DEBUG] Shell requested\n");
+
+    if (channel == NULL) {
+        printf("[DEBUG] Shell requested but channel is NULL\n");
+        return SSH_ERROR;
+    }
+
+    printf("[DEBUG] Shell setup completed successfully\n");
+    return SSH_OK;
+}
+
 static int pty_request(ssh_session session, ssh_channel channel,
                       const char *term, int cols, int rows,
-                      int py, int px, void *userdata);
-static int shell_request(ssh_session session, ssh_channel channel, void *userdata);
+                      int py, int px, void *userdata)
+{
+    printf("[DEBUG] PTY requested: %s (%dx%d)\n", term, cols, rows);
+    return SSH_OK;
+}
+
 
 // Authentication callback - deny none authentication
-static int auth_none(ssh_session session, const char *user, void *userdata) {
-    (void)user;
-    (void)userdata;
-
+static int auth_none(ssh_session session, const char *user, void *userdata)
+{
     printf("[DEBUG] Auth none requested for user: %s\n", user);
     ssh_set_auth_methods(session, SSH_AUTH_METHOD_PASSWORD);
     return SSH_AUTH_DENIED;
@@ -51,8 +62,8 @@ static int auth_none(ssh_session session, const char *user, void *userdata) {
 
 // Password authentication callback
 static int auth_password(ssh_session session, const char *user,
-                        const char *password, void *userdata) {
-    (void)userdata;
+                        const char *password, void *userdata)
+{
 
     printf("[DEBUG] Password auth attempt for user: %s\n", user);
 
@@ -74,15 +85,12 @@ static int auth_password(ssh_session session, const char *user,
     return SSH_AUTH_DENIED;
 }
 
-    struct ssh_channel_callbacks_struct channel_cb = {
-        .userdata = NULL,
-        .channel_pty_request_function = pty_request,
-        .channel_shell_request_function = shell_request,
-        // .channel_data_function = data_function
-    };
+struct ssh_channel_callbacks_struct channel_cb = {
+    .userdata = NULL,
+    .channel_pty_request_function = pty_request,
+    .channel_shell_request_function = shell_request,
+};
 
-
-// Channel open callback
 static ssh_channel channel_open(ssh_session session, void *userdata) {
     (void)userdata;
 
@@ -94,106 +102,12 @@ static ssh_channel channel_open(ssh_session session, void *userdata) {
     printf("[DEBUG] Opening new channel\n");
     channel = ssh_channel_new(session);
 
-    // Set up channel callbacks
-
     ssh_callbacks_init(&channel_cb);
     ssh_set_channel_callbacks(channel, &channel_cb);
 
     printf("[DEBUG] Channel created and callbacks set\n");
     return channel;
 }
-
-// PTY request callback
-static int pty_request(ssh_session session, ssh_channel channel,
-                      const char *term, int cols, int rows,
-                      int py, int px, void *userdata) {
-    (void)session;
-    (void)channel;
-    (void)term;
-    (void)cols;
-    (void)rows;
-    (void)py;
-    (void)px;
-    (void)userdata;
-
-    printf("[DEBUG] PTY requested: %s (%dx%d)\n", term, cols, rows);
-    return SSH_OK;
-}
-
-// Shell request callback
-static int shell_request(ssh_session session, ssh_channel channel, void *userdata) {
-    (void)session;
-    (void)userdata;
-
-    printf("[DEBUG] Shell requested\n");
-
-    if (channel == NULL) {
-        printf("[DEBUG] Shell requested but channel is NULL\n");
-        return SSH_ERROR;
-    }
-
-    // // Send a welcome message
-    // int rc = ssh_channel_write(channel, "Welcome to Simple SSH Server!\n", 30);
-    // if (rc != SSH_OK) {
-    //     printf("[DEBUG] Failed to write welcome message: %s\n", ssh_get_error(session));
-    //     return SSH_ERROR;
-    // }
-
-    // rc = ssh_channel_write(channel, "Type 'exit' to disconnect.\n\n", 26);
-    // if (rc != SSH_OK) {
-    //     printf("[DEBUG] Failed to write exit message: %s\n", ssh_get_error(session));
-    //     return SSH_ERROR;
-    // }
-
-    // // Send initial prompt
-    // rc = ssh_channel_write(channel, "$ ", 2);
-    // if (rc != SSH_OK) {
-    //     printf("[DEBUG] Failed to write prompt: %s\n", ssh_get_error(session));
-    //     return SSH_ERROR;
-    // }
-
-    printf("[DEBUG] Shell setup completed successfully\n");
-    return SSH_OK;
-}
-
-// Data callback for handling incoming data
-// static int data_function(ssh_session session, ssh_channel channel,
-//                         void *data, uint32_t len, int is_stderr, void *userdata) {
-//     (void)session;
-//     (void)channel;
-//     (void)data;
-//     (void)is_stderr;
-//     (void)userdata;
-
-//     printf("[DEBUG] Received %u bytes of data\n", (int)len);
-
-//     if (channel == NULL || data == NULL) {
-//         printf("[DEBUG] Data function called with NULL channel or data\n");
-//         return SSH_ERROR;
-//     }
-
-//     // Echo back what was received
-//     int rc = ssh_channel_write(channel, "Received: ", 10);
-//     if (rc != SSH_OK) {
-//         printf("[DEBUG] Failed to write 'Received:' prefix\n");
-//         return SSH_ERROR;
-//     }
-
-//     rc = ssh_channel_write(channel, data, len);
-//     if (rc != SSH_OK) {
-//         printf("[DEBUG] Failed to echo data back\n");
-//         return SSH_ERROR;
-//     }
-
-//     // Send new prompt
-//     rc = ssh_channel_write(channel, "\n$ ", 3);
-//     if (rc != SSH_OK) {
-//         printf("[DEBUG] Failed to write prompt\n");
-//         return SSH_ERROR;
-//     }
-
-//     return SSH_OK;
-// }
 
 static int load_hardcoded_key(ssh_bind sshbind)
 {
@@ -368,7 +282,7 @@ void app_main(void)
                 break;
             }
 
-            if (ssh_event_dopoll(event, 1000) == SSH_ERROR) {
+            if (ssh_event_dopoll(event, 10000) == SSH_ERROR) {
                 printf("[DEBUG] Error polling events: %s\n", ssh_get_error(session));
                 break;
             }
@@ -378,27 +292,17 @@ void app_main(void)
         // If we have a channel, set up callbacks and continue
         if (channel != NULL) {
             printf("[DEBUG] Channel created, setting up callbacks\n");
-            #define BUF_SIZE 2049
-            char buf[BUF_SIZE];
+            #define BUF_SIZE 2048
+            static char buf[BUF_SIZE];
             int i;
             int count = 0;
             char command[100];
 
             printf("[DEBUG] Channel created, setting up callbacks\n");
 
-            // Set up channel callbacks
-            // struct ssh_channel_callbacks_struct channel_cb = {
-            //     .userdata = NULL,
-            //     .channel_pty_request_function = pty_request,
-            //     .channel_shell_request_function = shell_request,
-            //     .channel_data_function = data_function
-            // };
-
-            // ssh_callbacks_init(&channel_cb);
-            // ssh_set_channel_callbacks(channel, &channel_cb);
-            do{
-                i=ssh_channel_read(channel, buf, sizeof(buf) - 1, 0);
-                if (i>0) {
+            do {
+                i = ssh_channel_read(channel, buf, sizeof(buf) - 1, 0);
+                if (i > 0) {
                     if (ssh_channel_write(channel, buf, i) == SSH_ERROR) {
                         printf("error writing to channel\n");
                         return;
@@ -443,29 +347,9 @@ void app_main(void)
                 }
             } while (i>0);
 
-            // Set up channel callbacks
-            // struct ssh_channel_callbacks_struct channel_cb = {
-            //     .userdata = NULL,
-            //     .channel_pty_request_function = pty_request,
-            //     .channel_shell_request_function = shell_request,
-            //     .channel_data_function = data_function
-            // };
-
-            // ssh_callbacks_init(&channel_cb);
-            // ssh_set_channel_callbacks(channel, &channel_cb);
-
-            // Continue polling until channel closes
-            // while (ssh_channel_is_open(channel)) {
-            //     if (ssh_event_dopoll(event, 1000) == SSH_ERROR) {
-            //         printf("[DEBUG] Error polling events: %s\n", ssh_get_error(session));
-            //         break;
-            //     }
-            // }
         }
 
         printf("[DEBUG] Connection closed\n");
-
-        // Clean up
         if (channel != NULL) {
             ssh_channel_free(channel);
             channel = NULL;
@@ -480,38 +364,4 @@ void app_main(void)
     // Clean up
     ssh_bind_free(sshbind);
     ssh_finalize();
-
-}
-
-
-
-#include <sys/types.h>
-#include <unistd.h>
-#include <pwd.h>
-
-/* Dummy getuid() */
-uid_t getuid(void)
-{
-    return 0;  // Return fake UID
-}
-
-/* Dummy getpwuid_r */
-int getpwuid_r(uid_t uid, struct passwd *pwd, char *buf, size_t buflen, struct passwd **result)
-{
-    if (result) {
-        *result = NULL;
-    }
-    return -1;  // Simulate failure
-}
-
-/* Dummy getpwnam */
-struct passwd *getpwnam(const char *name)
-{
-    return NULL;
-}
-
-/* Dummy waitpid */
-pid_t waitpid(pid_t pid, int *wstatus, int options)
-{
-    return -1;  // Simulate failure
 }

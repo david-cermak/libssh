@@ -1,4 +1,4 @@
-version: 0.1.0
+version: 0.11.0
 url: https://github.com/espressif/libssh
 description: The component provides a general purpose SSH connectivity
 dependencies:

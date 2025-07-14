@@ -24,7 +24,7 @@ set(libssh_SRCS
   kex.c
   known_hosts.c
   knownhosts.c
-  legacy.c
+#  legacy.c
   log.c
   match.c
   messages.c
@@ -38,7 +38,7 @@ set(libssh_SRCS
   pki_container_openssh.c
   poll.c
   session.c
-  scp.c
+#  scp.c
   socket.c
   string.c
   threads.c
@@ -51,55 +51,53 @@ set(libssh_SRCS
   pki_ed25519_common.c
 )
 
-
 set(libssh_SRCS
 ${libssh_SRCS}
-threads/mbedtls.c
-libmbedcrypto.c
-mbedcrypto_missing.c
-pki_mbedcrypto.c
-ecdh_mbedcrypto.c
-getrandom_mbedcrypto.c
-md_mbedcrypto.c
-dh_key.c
-pki_ed25519.c
-external/ed25519.c
-external/fe25519.c
-external/ge25519.c
-external/sc25519.c
+    threads/mbedtls.c
+    libmbedcrypto.c
+    mbedcrypto_missing.c
+    pki_mbedcrypto.c
+    ecdh_mbedcrypto.c
+    getrandom_mbedcrypto.c
+    md_mbedcrypto.c
+    dh_key.c
+    pki_ed25519.c
+    external/ed25519.c
+    external/fe25519.c
+    external/ge25519.c
+    external/sc25519.c
 )
 
 set(libssh_SRCS
 ${libssh_SRCS}
-external/chacha.c
-external/poly1305.c
-chachapoly.c
-)
-
-
-set(libssh_SRCS
-${libssh_SRCS}
-server.c
-bind.c
-bind_config.c
+    external/chacha.c
+    external/poly1305.c
+    chachapoly.c
 )
 
 set(libssh_SRCS
 ${libssh_SRCS}
-threads/noop.c
-threads/pthread.c
+    server.c
+    bind.c
+    bind_config.c
 )
 
 set(libssh_SRCS
 ${libssh_SRCS}
-external/curve25519_ref.c
+    threads/noop.c
+    threads/pthread.c
 )
 
+set(libssh_SRCS
+${libssh_SRCS}
+    external/curve25519_ref.c
+)
 
 list(TRANSFORM libssh_SRCS PREPEND "${LIBSSH_DIR}/src/")
 
 idf_component_register(SRCS ${libssh_SRCS}
-                    INCLUDE_DIRS ${LIBSSH_DIR}/include .
+                            port/idf_stubs.c
+                    INCLUDE_DIRS ${LIBSSH_DIR}/include port
                     PRIV_REQUIRES esp_netif mbedtls)
 
 target_compile_definitions(${COMPONENT_LIB} PRIVATE LIBSSH_STATIC)

@@ -1,3 +1,5 @@
+#include "idf_compat.h"
+
 /* Name of package */
 #define PACKAGE "libssh"
 
@@ -271,59 +273,3 @@
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */
 /* #undef WORDS_BIGENDIAN */
-
-#include <ctype.h>
-#include "esp_idf_version.h"
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 5, 0)
-#include "net/if.h"
-#else
-#define __VA_NARG__ 1
-#include "net/if.h"
-#undef __VA_NARG__
-
-const char *gai_strerror(int errcode);
-int socketpair(int domain, int type, int protocol, int sv[2]);
-#endif
-
-#include "termios.h"
-
-#define PF_UNIX AF_UNIX
-
-#undef  isspace
-#define isspace(__c) (__ctype_lookup((int)__c)&_S)
-
-#ifndef IMAXBEL
-#define IMAXBEL 0
-#endif
-
-#ifndef ECHOCTL
-#define ECHOCTL 0
-#endif
-
-#ifndef ECHOKE
-#define ECHOKE 0
-#endif
-
-#ifndef PENDIN
-#define PENDIN 0
-#endif
-
-#ifndef VEOL2
-#define VEOL2 0
-#endif
-
-#ifndef VREPRINT
-#define VREPRINT 0
-#endif
-
-#ifndef VWERASE
-#define VWERASE 0
-#endif
-
-#ifndef VLNEXT
-#define VLNEXT 0
-#endif
-
-#ifndef VDISCARD
-#define VDISCARD 0
-#endif
