@@ -1,0 +1,26 @@
+name: "build-tests"
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+
+env:
+  DOCS_DEPLOY_URL_BASE: ${{ secrets.DOCS_DEPLOY_URL_BASE }}
+  TEST_VAR2: ${{ vars.TEST_VAR }}
+
+jobs:
+  test_vars:
+    runs-on: ubuntu-latest
+    name: Test
+    steps:
+      - name: Test
+        shell: bash
+        run: |
+          echo "VARS: ${{ env.TEST_VAR }}"
+          echo "VARS: ${{ vars.TEST_VAR }}"
+          echo "VARS: $TEST_VAR"
+          echo "VARS: $TEST_VAR1"
+          echo "VARS: $TEST_VAR2"
