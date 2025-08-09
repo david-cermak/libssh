@@ -19,10 +19,11 @@
 #include <libssh/libssh.h>
 #include <libssh/server.h>
 #include <libssh/callbacks.h>
+#include "mdns.h"
 
-#define DEFAULT_PORT "2222"
-#define DEFAULT_USERNAME "user"
-#define DEFAULT_PASSWORD "password"
+#define DEFAULT_PORT "22"
+#define DEFAULT_USERNAME "root"
+#define DEFAULT_PASSWORD "pass"
 
 static int authenticated = 0;
 static int tries = 0;
@@ -118,9 +119,10 @@ static int set_hostkey(ssh_bind sshbind)
         return SSH_ERROR;
     }
 
-    printf("[DEBUG] Successfully loaded hardcoded private key\n");
+    // printf("[DEBUG] Successfully loaded hardcoded private key\n");
     return SSH_OK;
 }
+#define TAG "heap"
 
 void app_main(void)
 {
@@ -134,8 +136,14 @@ void app_main(void)
     ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
+
+    ESP_ERROR_CHECK(mdns_init());
+    ESP_ERROR_CHECK(mdns_hostname_set("brew01"));
+
     ESP_ERROR_CHECK(example_connect());
 
+
+    ESP_LOGW(TAG, "Remaining: %" PRIu32 " bytes)", esp_get_free_heap_size());
     // Initialize libssh
     rc = ssh_init();
     if (rc != SSH_OK) {
@@ -171,8 +179,10 @@ void app_main(void)
         return;
     }
 
-    printf("Simple SSH Server listening on 0.0.0.0:%s\n", port);
-    printf("Default credentials: %s/%s\n", DEFAULT_USERNAME, DEFAULT_PASSWORD);
+    printf("SSH Server listening on 0.0.0.0:%s\n", port);
+    ESP_LOGW(TAG, "Remaining: %" PRIu32 " bytes)", esp_get_free_heap_size());
+
+    // printf("Default credentials: %s/%s\n", DEFAULT_USERNAME, DEFAULT_PASSWORD);
 
     // Accept connections
     while (1) {
@@ -181,6 +191,16 @@ void app_main(void)
             fprintf(stderr, "Failed to create session\n");
             continue;
         }
+        ESP_LOGI("cam", "Face detection started");
+        ESP_LOGI("cam", "Face recognized: %s", "Bob, the boss");
+        printf("brew: Starting making coffee for %s\n", "Bob, the boss");
+        printf("brew: Preferred choice: %s\n", "Espresso");
+        printf("brew: Coffee finished\n");
+        ESP_LOGI("cam", "Face detection started");
+        ESP_LOGI("cam", "Face recognized: %s", "Fred");
+        printf("brew: Starting making coffee for %s\n", "Fred");
+        printf("brew: Preferred choice: %s\n", "Latte");
+        printf("brew: Coffee finished\n");
 
         rc = ssh_bind_accept(sshbind, session);
         if (rc != SSH_OK) {
@@ -191,6 +211,7 @@ void app_main(void)
         }
 
         printf("[DEBUG] New connection accepted\n");
+        ESP_LOGW(TAG, "Remaining: %" PRIu32 " bytes)", esp_get_free_heap_size());
 
         // Set up server callbacks
         struct ssh_server_callbacks_struct server_cb = {
@@ -202,7 +223,7 @@ void app_main(void)
 
         ssh_callbacks_init(&server_cb);
         ssh_set_server_callbacks(session, &server_cb);
-        printf("[DEBUG] Server callbacks set\n");
+        // printf("[DEBUG] Server callbacks set\n");
 
         // Handle key exchange
         rc = ssh_handle_key_exchange(session);
@@ -215,10 +236,12 @@ void app_main(void)
         }
 
         printf("[DEBUG] Key exchange completed\n");
+        ESP_LOGW(TAG, "Remaining: %" PRIu32 " bytes)", esp_get_free_heap_size());
 
         // Set up authentication methods
         ssh_set_auth_methods(session, SSH_AUTH_METHOD_PASSWORD);
         printf("[DEBUG] Authentication methods set\n");
+        ESP_LOGW(TAG, "Remaining: %" PRIu32 " bytes)", esp_get_free_heap_size());
 
         // Create event for session handling
         event = ssh_event_new();
@@ -238,7 +261,7 @@ void app_main(void)
             continue;
         }
 
-        printf("[DEBUG] Session added to event, starting main loop\n");
+        // printf("[DEBUG] Session added to event, starting main loop\n");
 
         // Check initial channel state
         printf("[DEBUG] Initial channel state: channel=%p, is_open=%s\n",
@@ -266,14 +289,20 @@ void app_main(void)
 
         // If we have a channel, set up callbacks and continue
         if (channel != NULL) {
-            printf("[DEBUG] Channel created, setting up callbacks\n");
+            // printf("[DEBUG] Channel created, setting up callbacks\n");
             #define BUF_SIZE 2048
             static char buf[BUF_SIZE];
+            const char *hello = "Hello boss, how can I help you?\r\n";
             int i;
             int count = 0;
             char command[100];
 
-            printf("[DEBUG] Channel created, setting up callbacks\n");
+            // printf("[DEBUG] Channel created, setting up callbacks\n");
+            if (ssh_channel_write(channel, hello, strlen(hello)) == SSH_ERROR) {
+                printf("error writing to channel\n");
+                return;
+            }
+            ESP_LOGW(TAG, "Remaining: %" PRIu32 " bytes)", esp_get_free_heap_size());
 
             do {
                 i = ssh_channel_read(channel, buf, sizeof(buf) - 1, 0);
@@ -297,7 +326,7 @@ void app_main(void)
                             printf("[DEBUG] Exit command received\n");
                             break;
                         }
-                        if (memcmp(command, "reset", 5) == 0) {
+                        if (memcmp(command, "reboot", 5) == 0) {
                             printf("[DEBUG] Reset command received\n");
                             esp_restart();
                             // break;
