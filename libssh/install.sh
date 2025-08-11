@@ -7,7 +7,7 @@ set -e  # Exit on any error
 
 # Configuration
 LIBSSH_VERSION="0.11.0"
-LIBSSH_URL="https://www.libssh.org/files/0.11/libssh-${LIBSSH_VERSION}.tar.xz"
+LIBSSH_URL="https://git.libssh.org/projects/libssh.git/snapshot/libssh-${LIBSSH_VERSION}.tar.xz"
 LIBSSH_DIR="libssh-${LIBSSH_VERSION}"
 INSTALL_DIR="/usr/local"
 

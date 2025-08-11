@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <unistd.h>
 #include "nvs_flash.h"
 #include "esp_event.h"
@@ -20,14 +21,32 @@
 #include <libssh/server.h>
 #include <libssh/callbacks.h>
 
-#define DEFAULT_PORT "2222"
-#define DEFAULT_USERNAME "user"
-#define DEFAULT_PASSWORD "password"
+// Configuration (from Kconfig)
+#include "sdkconfig.h"
+
+#define DEFAULT_PORT CONFIG_EXAMPLE_DEFAULT_PORT
+#define DEBUG_LEVEL CONFIG_EXAMPLE_DEBUG_LEVEL
+#define ALLOW_PASSWORD_AUTH (CONFIG_EXAMPLE_ALLOW_PASSWORD_AUTH)
+#define ALLOW_PUBLICKEY_AUTH (CONFIG_EXAMPLE_ALLOW_PUBLICKEY_AUTH)
+#define DEFAULT_USERNAME CONFIG_EXAMPLE_DEFAULT_USERNAME
+
+// Authentication methods
+#if ALLOW_PASSWORD_AUTH
+#define DEFAULT_PASSWORD CONFIG_EXAMPLE_DEFAULT_PASSWORD
+#endif
+#if ALLOW_PASSWORD_AUTH && ALLOW_PUBLICKEY_AUTH
+#define ALLOW_AUTH_METHODS (SSH_AUTH_METHOD_PASSWORD | SSH_AUTH_METHOD_PUBLICKEY)
+#elif ALLOW_PASSWORD_AUTH
+#define ALLOW_AUTH_METHODS (SSH_AUTH_METHOD_PASSWORD)
+#elif ALLOW_PUBLICKEY_AUTH
+#define ALLOW_AUTH_METHODS (SSH_AUTH_METHOD_PUBLICKEY)
+#else
+#define ALLOW_AUTH_METHODS (0)
+#endif
 
 static int authenticated = 0;
 static int tries = 0;
 static ssh_channel channel = NULL;
-
 
 // Callbacks
 static int shell_request(ssh_session session, ssh_channel channel, void *userdata)
@@ -56,10 +75,11 @@ static int pty_request(ssh_session session, ssh_channel channel,
 static int auth_none(ssh_session session, const char *user, void *userdata)
 {
     printf("[DEBUG] Auth none requested for user: %s\n", user);
-    ssh_set_auth_methods(session, SSH_AUTH_METHOD_PASSWORD);
+    ssh_set_auth_methods(session, ALLOW_AUTH_METHODS);
     return SSH_AUTH_DENIED;
 }
 
+#if ALLOW_PASSWORD_AUTH
 // Password authentication callback
 static int auth_password(ssh_session session, const char *user,
                         const char *password, void *userdata)
@@ -84,6 +104,143 @@ static int auth_password(ssh_session session, const char *user,
     printf("[DEBUG] Authentication failed (attempt %d/3)\n", tries);
     return SSH_AUTH_DENIED;
 }
+#endif // ALLOW_PASSWORD_AUTH
+
+#if ALLOW_PUBLICKEY_AUTH
+/* Public key authentication using in-memory authorized_keys list */
+static int auth_publickey(ssh_session session,
+                         const char *user,
+                         struct ssh_key_struct *pubkey,
+                         char signature_state,
+                         void *userdata)
+{
+    extern const uint8_t allowed_pubkeys[]   asm("_binary_ssh_allowed_client_key_pub_start");
+
+    if (user == NULL || strcmp(user, DEFAULT_USERNAME) != 0) {
+        return SSH_AUTH_DENIED;
+    }
+    ESP_LOGI("DEBUG", "Public key authentication requested for user: %s", user);
+
+    /* If client is probing supported keys (no signature), accept match to prompt signature */
+    const char *cursor = (const char *)allowed_pubkeys;
+    while (cursor != NULL && *cursor != '\0') {
+        const char *line_start = cursor;
+        const char *nl = strchr(cursor, '\n');
+        size_t line_len = (nl != NULL) ? (size_t)(nl - line_start) : strlen(line_start);
+
+        /* Advance cursor for next iteration now to simplify continues */
+        cursor = (nl != NULL) ? nl + 1 : line_start + line_len;
+
+        /* Skip empty/whitespace-only lines */
+        size_t leading_ws = 0U;
+        while (leading_ws < line_len && isspace((unsigned char)line_start[leading_ws])) {
+            leading_ws++;
+        }
+        if (leading_ws >= line_len) {
+            continue;
+        }
+
+        /* Make a NUL-terminated copy of the current line */
+        char *line = (char *)malloc(line_len + 1);
+        if (line == NULL) {
+            ESP_LOGI("DEBUG", "malloc failed at %d", __LINE__);
+            break;
+        }
+        memcpy(line, line_start, line_len);
+        line[line_len] = '\0';
+
+        /* Find end of type token (first whitespace) */
+        const char *sp1 = line;
+        while (*sp1 != '\0' && !isspace((unsigned char)*sp1)) {
+            sp1++;
+        }
+        if (*sp1 == '\0') {
+            free(line);
+            continue;
+        }
+        size_t type_len = (size_t)(sp1 - line);
+        if (type_len == 0) {
+            free(line);
+            continue;
+        }
+
+        char type_name[32];
+        if (type_len >= sizeof(type_name)) {
+            free(line);
+            continue;
+        }
+        memcpy(type_name, line, type_len);
+        type_name[type_len] = '\0';
+
+        /* Skip whitespace to start of base64 */
+        const char *b64_start = sp1;
+        while (*b64_start != '\0' && isspace((unsigned char)*b64_start)) {
+            b64_start++;
+        }
+        if (*b64_start == '\0' || *b64_start == '\n' || *b64_start == '\r') {
+            free(line);
+            continue;
+        }
+        /* Find end of base64 (next whitespace or end) */
+        const char *p = b64_start;
+        while (*p != '\0' && !isspace((unsigned char)*p)) {
+            p++;
+        }
+        size_t b64_len = (size_t)(p - b64_start);
+        if (b64_len == 0) {
+            free(line);
+            continue;
+        }
+
+        enum ssh_keytypes_e key_type = ssh_key_type_from_name(type_name);
+        if (key_type == SSH_KEYTYPE_UNKNOWN) {
+            free(line);
+            continue;
+        }
+
+        /* Copy only the base64 blob (exclude trailing comment) */
+        char *b64_copy = (char *)malloc(b64_len + 1);
+        if (b64_copy == NULL) {
+            ESP_LOGI("DEBUG", "malloc failed at %d", __LINE__);
+            free(line);
+            continue;
+        }
+        memcpy(b64_copy, b64_start, b64_len);
+        b64_copy[b64_len] = '\0';
+
+        ssh_key authorized_key = NULL;
+        int rc = ssh_pki_import_pubkey_base64(b64_copy, key_type, &authorized_key);
+        free(b64_copy);
+        if (rc != SSH_OK || authorized_key == NULL) {
+            if (authorized_key != NULL) {
+                ssh_key_free(authorized_key);
+            }
+            free(line);
+            continue;
+        }
+        rc = ssh_key_cmp(authorized_key, pubkey, SSH_KEY_CMP_PUBLIC);
+        ssh_key_free(authorized_key);
+        if (rc == 0) {
+            free(line);
+            if (signature_state == SSH_PUBLICKEY_STATE_NONE) {
+                return SSH_AUTH_SUCCESS; /* tell client to sign */
+            }
+
+            if (signature_state == SSH_PUBLICKEY_STATE_VALID) {
+                authenticated = 1;
+                ESP_LOGI("DEBUG", "Public key authentication successful for user: %s", user);
+                return SSH_AUTH_SUCCESS;
+            }
+
+            return SSH_AUTH_DENIED;
+        }
+
+        free(line);
+    }
+
+    return SSH_AUTH_DENIED;
+}
+#endif // ALLOW_PUBLICKEY_AUTH
 
 struct ssh_channel_callbacks_struct channel_cb = {
     .userdata = NULL,
@@ -153,7 +310,9 @@ void app_main(void)
     // Set bind options
     ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_BINDADDR, "0.0.0.0");
     ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_BINDPORT_STR, port);
-    ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_LOG_VERBOSITY_STR, "1");
+#ifdef DEBUG_LEVEL
+    ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_LOG_VERBOSITY_STR, DEBUG_LEVEL);
+#endif
 
     // Set host key
     rc = set_hostkey(sshbind);
@@ -172,7 +331,9 @@ void app_main(void)
     }
 
     printf("Simple SSH Server listening on 0.0.0.0:%s\n", port);
+#if ALLOW_PASSWORD_AUTH
     printf("Default credentials: %s/%s\n", DEFAULT_USERNAME, DEFAULT_PASSWORD);
+#endif
 
     // Accept connections
     while (1) {
@@ -196,7 +357,12 @@ void app_main(void)
         struct ssh_server_callbacks_struct server_cb = {
             .userdata = NULL,
             .auth_none_function = auth_none,
+#if ALLOW_PASSWORD_AUTH
             .auth_password_function = auth_password,
+#endif
+#if ALLOW_PUBLICKEY_AUTH
+            .auth_pubkey_function = auth_publickey,
+#endif
             .channel_open_request_session_function = channel_open
         };
 
@@ -205,19 +371,34 @@ void app_main(void)
         printf("[DEBUG] Server callbacks set\n");
 
         // Handle key exchange
+        // Note: ssh_handle_key_exchange() can return:
+        // - SSH_OK: Key exchange completed successfully
+        // - SSH_AGAIN: Key exchange in progress, need to call again
+        // - SSH_ERROR: Fatal error occurred
         rc = ssh_handle_key_exchange(session);
-        if (rc != SSH_OK) {
-            fprintf(stderr, "[DEBUG] Key exchange failed: %s\n",
-                    ssh_get_error(session));
+        printf("[DEBUG] Key exchange result: rc=%d ", rc);
+        if (rc == SSH_OK) {
+            printf("(SSH_OK - completed successfully)\n");
+        } else if (rc == SSH_AGAIN) {
+            printf("(SSH_AGAIN - in progress)\n");
+        } else if (rc == SSH_ERROR) {
+            printf("(SSH_ERROR - fatal error)\n");
+        } else {
+            printf("(unknown return code %d)\n", rc);
+        }
+
+        if (rc == SSH_ERROR) {
+            fprintf(stderr, "[DEBUG] Key exchange failed: %s (bind: %s)\n",
+                    ssh_get_error(session), ssh_get_error(sshbind));
             ssh_disconnect(session);
             ssh_free(session);
             continue;
         }
 
-        printf("[DEBUG] Key exchange completed\n");
+        printf("[DEBUG] Key exchange completed or in progress\n");
 
         // Set up authentication methods
-        ssh_set_auth_methods(session, SSH_AUTH_METHOD_PASSWORD);
+        ssh_set_auth_methods(session, ALLOW_AUTH_METHODS);
         printf("[DEBUG] Authentication methods set\n");
 
         // Create event for session handling
