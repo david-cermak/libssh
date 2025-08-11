@@ -21,18 +21,18 @@
 #include <libssh/server.h>
 #include <libssh/callbacks.h>
 
-// Configuration
-#define DEFAULT_PORT "2222"
-#define DEBUG_LEVEL "1"
-// For more verbose logging please increase stack size of the main task
-// #define DEBUG_LEVEL "4"
-#define ALLOW_PASSWORD_AUTH 1
-#define ALLOW_PUBLICKEY_AUTH 0
-#define DEFAULT_USERNAME "user"
+// Configuration (from Kconfig)
+#include "sdkconfig.h"
+
+#define DEFAULT_PORT CONFIG_EXAMPLE_DEFAULT_PORT
+#define DEBUG_LEVEL CONFIG_EXAMPLE_DEBUG_LEVEL
+#define ALLOW_PASSWORD_AUTH (CONFIG_EXAMPLE_ALLOW_PASSWORD_AUTH)
+#define ALLOW_PUBLICKEY_AUTH (CONFIG_EXAMPLE_ALLOW_PUBLICKEY_AUTH)
+#define DEFAULT_USERNAME CONFIG_EXAMPLE_DEFAULT_USERNAME
 
 // Authentication methods
 #if ALLOW_PASSWORD_AUTH
-#define DEFAULT_PASSWORD "password"
+#define DEFAULT_PASSWORD CONFIG_EXAMPLE_DEFAULT_PASSWORD
 #endif
 #if ALLOW_PASSWORD_AUTH && ALLOW_PUBLICKEY_AUTH
 #define ALLOW_AUTH_METHODS (SSH_AUTH_METHOD_PASSWORD | SSH_AUTH_METHOD_PUBLICKEY)
@@ -47,15 +47,6 @@
 static int authenticated = 0;
 static int tries = 0;
 static ssh_channel channel = NULL;
-
-/* In-memory list of allowed SSH public keys as a single string.
- * Multiple keys should be separated by a single '\n' character, one key per line,
- * in authorized_keys format, e.g.:
- * "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF... user@host\n"
- * "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ... user@host\n"
- */
-static const char *allowed_pubkeys =
-    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF... user@host\n";
 
 // Callbacks
 static int shell_request(ssh_session session, ssh_channel channel, void *userdata)
@@ -123,8 +114,7 @@ static int auth_publickey(ssh_session session,
                          char signature_state,
                          void *userdata)
 {
-    (void)session;
-    (void)userdata;
+    extern const uint8_t allowed_pubkeys[]   asm("_binary_ssh_allowed_client_key_pub_start");
 
     if (user == NULL || strcmp(user, DEFAULT_USERNAME) != 0) {
         return SSH_AUTH_DENIED;
@@ -132,7 +122,7 @@ static int auth_publickey(ssh_session session,
     ESP_LOGI("DEBUG", "Public key authentication requested for user: %s", user);
 
     /* If client is probing supported keys (no signature), accept match to prompt signature */
-    const char *cursor = allowed_pubkeys;
+    const char *cursor = (const char *)allowed_pubkeys;
     while (cursor != NULL && *cursor != '\0') {
         const char *line_start = cursor;
         const char *nl = strchr(cursor, '\n');

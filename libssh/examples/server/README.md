@@ -29,7 +29,7 @@ The server will automatically use your key for all SSH connections on port 2222 
 
 ## Authentication methods
 
-This example supports password authentication, public-key authentication, or both. Control this in `libssh/examples/server/main/server.c`:
+This example supports password authentication, public-key authentication, or both. You can control this in this example menuconfig.
 
 - `ALLOW_PASSWORD_AUTH`: set to 1 to enable password authentication
 - `ALLOW_PUBLICKEY_AUTH`: set to 1 to enable public-key authentication
@@ -53,20 +53,22 @@ ssh-keygen -t ed25519 -f client_ssh_key -N "" -C "user@client"
 
 3) Add the public key to the allowed keys string in the server:
 
-- Open `libssh/examples/server/main/server.c`
-- Find `static const char *allowed_pubkeys =`
+- Open `libssh/examples/server/main/ssh_allowed_client_key.pub`
 - Append the exact content of `client_ssh_key.pub` as a new line in the string, ending with `\n`.
-
-Example:
-
-```c
-static const char *allowed_pubkeys =
-    "ssh-ed25519 AAAAC3...your_public_key_blob... user@client\n";
-```
 
 You can add multiple keys by placing each key on its own line in the same string, separated by `\n`.
 
 4) Rebuild and flash: `idf.py build flash monitor`
+
+Note: For demonstration purpose, we provide a pre-generated temporary client key, which is added to the allowed client list.
+To test is with this default key, just keep the default settings and run:
+
+```bash
+ssh -i main/client_ssh_key user@192.168.0.34 -p 2222
+```
+
+Warning: Do not use this key in any real-life project.
+Warning: Edit the "ssh_allowed_client_key.pub" before using in a real project -- Do not forget to remove the temporary client key!
 
 ### Configure and build
 

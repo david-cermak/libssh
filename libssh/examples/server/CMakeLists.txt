@@ -6,3 +6,4 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(server)
 
 target_add_binary_data(server.elf "main/ssh_host_ed25519_key" TEXT)
+target_add_binary_data(server.elf "main/ssh_allowed_client_key.pub" TEXT)
