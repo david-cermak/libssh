@@ -1,0 +1,5 @@
+-----BEGIN OPENSSH PRIVATE KEY-----
+# Demo placeholder. Replace with a real Ed25519 host key.
+# Generate: ssh-keygen -t ed25519 -f ssh_host_ed25519_key -N ""
+# WARNING: Do not use this placeholder in production.
+-----END OPENSSH PRIVATE KEY-----

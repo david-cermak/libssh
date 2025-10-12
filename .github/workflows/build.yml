@@ -26,3 +26,9 @@ jobs:
           ./install.sh
           cd examples/server
           idf.py build
+      - name: Build bastion example (IDF-${{ matrix.idf_ver }})
+        shell: bash
+        run: |
+          . ${IDF_PATH}/export.sh
+          cd libssh/examples/bastion
+          idf.py build

@@ -1,0 +1,3 @@
+# Adjust as needed for your IDF version
+# CONFIG_LWIP_IP_FORWARD=y
+# CONFIG_LWIP_NAPT=y
