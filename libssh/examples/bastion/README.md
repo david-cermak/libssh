@@ -8,8 +8,8 @@ This example runs an SSH server on ESP32 that can act as a small “bastion”. 
 ## Build & Flash
 
 - Configure Wi-Fi and build: `idf.py menuconfig && idf.py build flash monitor`
-- Default SSH port: `2222` (see `bastion.c`)
-- Connect from a client: `ssh user@<bastion-ip> -p 2222`
+- Default SSH port: `22` (see `bastion.c`)
+- Connect from a client: `ssh user@<bastion-ip>`
 
 ## Usage
 
@@ -24,17 +24,17 @@ This setup assumes the ESP32 runs STA+AP with NAT (NAPT) so internal devices (e.
 ```mermaid
 flowchart LR
   subgraph External
-    A[Phone (Termux)]
+    A["Phone (Termux)"]
   end
-  subgraph Bastion (ESP32 STA+AP)
-    B[SSH Server :2222]\nConsole: tun P1:HOST:P2
-    L[Listener P1]\nForwarder
+  subgraph "Bastion (ESP32 STA+AP)"
+    B[SSH Server :22<br/>Console: tun P1:HOST:P2]
+    L[Listener P1<br/>Forwarder]
   end
-  subgraph Internal LAN (AP)
-    S[Sensor SSH :22]
+  subgraph "Internal LAN (AP)"
+    S["Sensor SSH :22"]
   end
 
-  A -- ssh to bastion:2222 --> B
+  A -- ssh to bastion:22 --> B
   B -- start 'tun 2222:sensor:22' --> L
   A -- ssh to bastion:2222 --> L
   L <---> S

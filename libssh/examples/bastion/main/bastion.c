@@ -25,7 +25,7 @@
 
 static const char* TAG = "bastion_ssh";
 
-#define DEFAULT_PORT "2222"
+#define DEFAULT_PORT "22"
 #define DEFAULT_USERNAME "user"
 #define DEFAULT_PASSWORD "password"
 
