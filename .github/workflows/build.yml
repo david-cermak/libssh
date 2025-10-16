@@ -26,7 +26,7 @@ jobs:
           ./install.sh
           cd examples/server
           idf.py build
-          cd examples/esp_ssh
+          cd ../esp_ssh
           idf.py build
-          cd examples/bastion
+          cd ../bastion
           idf.py build
