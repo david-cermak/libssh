@@ -27,17 +27,8 @@ static ssh_channel channel = NULL;
 
 FILE *backup_out;
 
-
 // ---- Function Prototypes ----
 static void handle_shell_io(ssh_channel channel);
-
-// ---- Utility Functions ----
-static void initialize_esp_components() {
-    ESP_ERROR_CHECK(nvs_flash_init());
-    ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
-    ESP_ERROR_CHECK(example_connect());
-}
 
 static int set_hostkey(ssh_bind sshbind) {
     extern const uint8_t hostkey[] asm("_binary_ssh_host_ed25519_key_start");
@@ -132,7 +123,7 @@ static FILE* vfs_init(void)
         .base_path = "/ssh",
         .send_timeout_ms = 10000,
         .recv_timeout_ms = 10000,
-        .recv_buffer_size = 256,
+        .recv_buffer_size = 2048,
         .fallback_stdout = stdout
     };
     ESP_ERROR_CHECK(ssh_vfs_register(&config));
@@ -172,12 +163,46 @@ static void vfs_exit(FILE* ssh_io)
 }
 
 
+void tunnel_add_and_start(int p1, const char *host, int p2);
+
+int do_tun(int argc, char **argv)
+{
+    printf("Creating tunnel...\n");
+    if (argc < 4) {
+        printf("Usage: tun <P1> <HOST> <P2>\n");
+        return -1;
+    }
+    int p1 = atoi(argv[1]);
+    const char *host = argv[2];
+    int p2 = atoi(argv[3]);
+    tunnel_add_and_start(p1, host, p2);
+    return 0;
+}
+
+void tunnel_stop(int p1);
+
+int do_tunkill(int argc, char **argv)
+{
+    printf("Stopping tunnel...\n");
+    if (argc < 2) {
+        printf("Usage: tunkill <P1>\n");
+        return -1;
+    }
+    int p1 = atoi(argv[1]);
+    tunnel_stop(p1);
+    return 0;
+}
+
 // Runs the console REPL task for command processing.
 static void console_task(void* arg)
 {
 #if 1
     // Initialize console REPL
     ESP_ERROR_CHECK(console_cmd_init());
+
+    ESP_ERROR_CHECK(console_cmd_user_register("tun", do_tun));
+    ESP_ERROR_CHECK(console_cmd_user_register("tunkill", do_tunkill));
+
     ESP_ERROR_CHECK(console_cmd_all_register());
 
     // start console REPL
@@ -262,10 +287,8 @@ static void handle_shell_io(ssh_channel channel_l) {
 }
 
 
-// Main application entry, sets up SSH server and handles incoming connections.
-void app_main(void) {
-    initialize_esp_components();
-
+void init_ssh_server(void)
+{
     if (ssh_init() != SSH_OK) return;
 
     ssh_bind sshbind = ssh_bind_new();

@@ -1,5 +1,7 @@
 idf_component_register(SRCS
         bastion.c
+        tunnel.c
+        server.c
         ssh_vfs.c
         softap.c
     INCLUDE_DIRS .

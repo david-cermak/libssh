@@ -72,12 +72,13 @@ static ssize_t ssh_vfs_write(void* ctx, int fd, const void * data, size_t size)
     int sent = 0;
     const uint8_t *buf = (const uint8_t *)data;
 
-    fprintf(backup_out, "Write string: %d\n", size);
-    fflush(backup_out);
-    
     if (!buf || size == 0 || size > 32768) {
         return 0; // Nothing to write
     }
+
+    // fprintf(backup_out, "Write string: %d\n", (int)size);
+    // fflush(backup_out);
+
 
     if (fd < 0 || fd > MAX_CLIENTS) {
         errno = EBADF;
@@ -92,6 +93,10 @@ static ssize_t ssh_vfs_write(void* ctx, int fd, const void * data, size_t size)
 
     if (!ssh_channel_is_eof(channel)) {
         sent = ssh_channel_write(channel, buf, size);
+        for (int i = 0; i < size; i++) {
+            fputc(((uint8_t*)buf)[i], backup_out);
+        }
+        fflush(backup_out);
         if (sent < 0) {
             errno = EIO;
             return -1;
@@ -162,7 +167,7 @@ static ssize_t ssh_vfs_read(void* ctx, int fd, void * dst, size_t size)
             break;
         }
         memcpy(p_dst, ptr, read_size);
-        
+
 
         vRingbufferReturnItem(rb, ptr);
         read_remaining -= read_size;
