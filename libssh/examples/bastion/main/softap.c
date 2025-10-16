@@ -17,8 +17,6 @@
 #define EXAMPLE_ESP_WIFI_CHANNEL   1
 #define EXAMPLE_MAX_STA_CONN       10
 
-#define EXAMPLE_GTK_REKEY_INTERVAL 0
-
 static const char *TAG = "wifi softAP";
 
 static void wifi_event_handler(void* arg, esp_event_base_t event_base,
@@ -70,7 +68,6 @@ void wifi_init_softap(void)
                 .protected_keep_alive = 1,
             },
 #endif
-            .gtk_rekey_interval = EXAMPLE_GTK_REKEY_INTERVAL,
         },
     };
     if (strlen(EXAMPLE_ESP_WIFI_PASS) == 0) {
