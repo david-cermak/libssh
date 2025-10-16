@@ -16,6 +16,8 @@
 #include "esp_log.h"
 #include "esp_netif.h"
 #include "protocol_examples_common.h"
+#include "esp_eth.h"
+#include "ethernet_init.h"
 
 #include <libssh/libssh.h>
 #include <libssh/server.h>
@@ -165,13 +167,37 @@ static void tunnel_add_and_start(int p1, const char *host, int p2)
     xTaskCreate(listener_task, "tun_listen", 4096, cfg, 8, NULL);
 }
 
-// --- SSH helpers ---
+
+void wifi_init_softap(void);
+
+static void init_ethernet_and_netif(void)
+{
+    static esp_eth_handle_t *s_eth_handles = NULL;
+    static uint8_t s_eth_port_cnt = 0;
+
+    ESP_ERROR_CHECK(ethernet_init_all(&s_eth_handles, &s_eth_port_cnt));
+
+    esp_netif_inherent_config_t esp_netif_config = ESP_NETIF_INHERENT_DEFAULT_ETH();
+    esp_netif_config_t cfg_spi = {
+        .base = &esp_netif_config,
+        .stack = ESP_NETIF_NETSTACK_DEFAULT_ETH
+    };
+    assert(s_eth_port_cnt == 1); // only one Ethernet port supported
+        // attach Ethernet driver to TCP/IP stack
+    esp_netif_t *eth_netif = esp_netif_new(&cfg_spi);
+    assert(eth_netif != NULL);
+    ESP_ERROR_CHECK(esp_netif_attach(eth_netif, esp_eth_new_netif_glue(s_eth_handles[0])));
+    ESP_ERROR_CHECK(esp_eth_start(s_eth_handles[0]));
+}
+
 static void initialize_esp_components(void)
 {
     ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
-    ESP_ERROR_CHECK(example_connect()); // STA or other networking
+    // ESP_ERROR_CHECK(example_connect()); // STA or other networking
+    init_ethernet_and_netif();
+    wifi_init_softap();
 }
 
 static int set_hostkey(ssh_bind sshbind)
@@ -322,7 +348,7 @@ static void handle_shell(ssh_channel ch)
 {
     FILE *io = vfs_init(); if (!io) return;
     run_vfs_read_task(ch);
-    xTaskCreate(repl_task, "repl", 4096, NULL, 5, NULL);
+    xTaskCreate(repl_task, "repl", 2*4096, NULL, 5, NULL);
     while (1) { vTaskDelay(pdMS_TO_TICKS(5000)); }
     vfs_exit(io);
 }

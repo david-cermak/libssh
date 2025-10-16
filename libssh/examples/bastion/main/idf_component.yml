@@ -4,3 +4,4 @@ dependencies:
     override_path: ../../..
   protocol_examples_common:
     path: ${IDF_PATH}/examples/common_components/protocol_examples_common
+  espressif/ethernet_init: '*'
