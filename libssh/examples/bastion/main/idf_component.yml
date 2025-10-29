@@ -1,5 +1,5 @@
 dependencies:
-  espressif/libssh:
+  david-cermak/libssh:
     version: '*'
     override_path: ../../..
   protocol_examples_common:
