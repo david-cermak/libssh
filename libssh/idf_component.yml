@@ -1,5 +1,6 @@
 version: 0.11.0
-url: https://github.com/espressif/libssh
+url: https://github.com/david-cermak/libssh
+license: LGPL-2.1
 description: The component provides a general purpose SSH connectivity
 dependencies:
   idf: '>=5.2'
