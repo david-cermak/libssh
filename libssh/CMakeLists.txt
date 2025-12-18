@@ -104,3 +104,6 @@ target_compile_definitions(${COMPONENT_LIB} PRIVATE LIBSSH_STATIC)
 target_compile_options(${COMPONENT_LIB} PRIVATE "-Wno-format")
 target_compile_options(${COMPONENT_LIB} PRIVATE "-Wno-int-conversion")
 target_compile_options(${COMPONENT_LIB} PRIVATE "-Wno-char-subscripts")
+
+set_source_files_properties(${LIBSSH_DIR}/src/external/bcrypt_pbkdf.c PROPERTIES COMPILE_OPTIONS "-Wno-unterminated-string-initialization")
+set_source_files_properties(${LIBSSH_DIR}/src/external/chacha.c PROPERTIES COMPILE_OPTIONS "-Wno-unterminated-string-initialization")
