@@ -104,3 +104,13 @@ target_compile_definitions(${COMPONENT_LIB} PRIVATE LIBSSH_STATIC)
 target_compile_options(${COMPONENT_LIB} PRIVATE "-Wno-format")
 target_compile_options(${COMPONENT_LIB} PRIVATE "-Wno-int-conversion")
 target_compile_options(${COMPONENT_LIB} PRIVATE "-Wno-char-subscripts")
+
+if("${IDF_VERSION_MAJOR}.${IDF_VERSION_MINOR}" VERSION_GREATER_EQUAL "6.0")
+# pre-include mbedtls_v3_shim to provide compatibility for mbedtls v3 API used by libssh
+idf_component_get_property(mbedtls_v3_shim_dir david-cermak__mbedtls_v3_shim COMPONENT_DIR)
+target_include_directories(${COMPONENT_LIB} BEFORE PRIVATE
+    "${mbedtls_v3_shim_dir}/include")
+endif()
+
+set_source_files_properties(${LIBSSH_DIR}/src/external/bcrypt_pbkdf.c PROPERTIES COMPILE_OPTIONS "-Wno-unterminated-string-initialization")
+set_source_files_properties(${LIBSSH_DIR}/src/external/chacha.c PROPERTIES COMPILE_OPTIONS "-Wno-unterminated-string-initialization")

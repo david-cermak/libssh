@@ -6,3 +6,5 @@ dependencies:
   idf: '>=5.2'
   espressif/sock_utils:
     version: "*"
+  david-cermak/mbedtls_v3_shim:
+    version: "*"

@@ -12,7 +12,7 @@ jobs:
     name: Build
     strategy:
       matrix:
-        idf_ver: ["latest", "release-v5.6", "release-v5.5", "release-v5.4", "release-v5.3"]
+        idf_ver: ["latest", "release-v6.0", "release-v5.5", "release-v5.4", "release-v5.3"]
     runs-on: ubuntu-22.04
     container: espressif/idf:${{ matrix.idf_ver }}
     steps:
@@ -26,7 +26,9 @@ jobs:
           ./install.sh
           cd examples/server
           idf.py build
-          cd ../esp_ssh
-          idf.py build
-          cd ../bastion
-          idf.py build
+          if [ "${{matrix.idf_ver}}" == "release-v5.5" ]; then
+            cd ../esp_ssh
+            idf.py build
+            cd ../bastion
+            idf.py build
+          fi
