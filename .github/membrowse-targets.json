@@ -1,0 +1,32 @@
+[
+  {
+    "target_name": "esp32-server",
+    "port": "esp32",
+    "board": "server",
+    "setup_cmd": ". ${IDF_PATH}/export.sh && cd libssh && ./install.sh",
+    "build_cmd": ". ${IDF_PATH}/export.sh && cd libssh/examples/server && idf.py build",
+    "elf": "libssh/examples/server/build/server.elf",
+    "ld": "",
+    "linker_vars": ""
+  },
+  {
+    "target_name": "esp32-esp_ssh",
+    "port": "esp32",
+    "board": "esp_ssh",
+    "setup_cmd": ". ${IDF_PATH}/export.sh && cd libssh && ./install.sh",
+    "build_cmd": ". ${IDF_PATH}/export.sh && cd libssh/examples/esp_ssh && idf.py build",
+    "elf": "libssh/examples/esp_ssh/build/server.elf",
+    "ld": "",
+    "linker_vars": ""
+  },
+  {
+    "target_name": "esp32-bastion",
+    "port": "esp32",
+    "board": "bastion",
+    "setup_cmd": ". ${IDF_PATH}/export.sh && cd libssh && ./install.sh",
+    "build_cmd": ". ${IDF_PATH}/export.sh && cd libssh/examples/bastion && idf.py build",
+    "elf": "libssh/examples/bastion/build/bastion_ssh.elf",
+    "ld": "",
+    "linker_vars": ""
+  }
+]
