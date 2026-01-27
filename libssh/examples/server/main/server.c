@@ -47,10 +47,12 @@
 static int authenticated = 0;
 static int tries = 0;
 static ssh_channel channel = NULL;
+static int lalala = 1;
 
 // Callbacks
 static int shell_request(ssh_session session, ssh_channel channel, void *userdata)
 {
+    lalala = 2;
     printf("[DEBUG] Shell requested\n");
 
     if (channel == NULL) {
