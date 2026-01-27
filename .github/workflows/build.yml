@@ -11,8 +11,9 @@ jobs:
   build_eppp:
     name: Build
     strategy:
+      fail-fast: false
       matrix:
-        idf_ver: ["latest", "release-v6.0", "release-v5.5", "release-v5.4", "release-v5.3"]
+        idf_ver: ["release-v6.0", "release-v5.5", "release-v5.4", "release-v5.3"]
     runs-on: ubuntu-22.04
     container: espressif/idf:${{ matrix.idf_ver }}
     steps:
