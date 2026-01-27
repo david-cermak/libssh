@@ -1,5 +1,7 @@
 # libssh
 
+[![Membrowse](https://membrowse.com/badge.svg)](https://membrowse.com/public/david-cermak/libssh)
+
 A minimal ESP-IDF port of libssh.
 The purpose of this component is to provide a way to run `sshd` on your ESP32 device, so you can "ssh" into your device.
 
