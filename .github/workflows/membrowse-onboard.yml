@@ -1,0 +1,97 @@
+name: Onboard to Membrowse
+
+on:
+  workflow_dispatch:
+    inputs:
+      num_commits:
+        description: 'Number of commits to process'
+        required: true
+        default: '100'
+        type: string
+
+jobs:
+  load-targets:
+    runs-on: ubuntu-22.04
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Load target matrix
+        id: set-matrix
+        run: echo "matrix=$(jq -c '.' .github/membrowse-targets.json)" >> $GITHUB_OUTPUT
+
+  onboard:
+    needs: load-targets
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.load-targets.outputs.matrix) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Install ESP-IDF dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git wget flex bison gperf python3 python3-pip python3-venv cmake ninja-build ccache libffi-dev libssl-dev dfu-util libusb-1.0-0
+
+      - name: Clone and install ESP-IDF
+        run: |
+          git clone -b release/v5.5 --depth 1 --recursive https://github.com/espressif/esp-idf.git /home/runner/esp-idf
+          /home/runner/esp-idf/install.sh esp32
+          # Find and record the actual venv path
+          VENV_PATH=$(find /home/runner/.espressif/python_env -name "activate" -path "*/bin/*" 2>/dev/null | head -1 | xargs dirname)
+          echo "ESP_IDF_VENV=$VENV_PATH" >> $GITHUB_ENV
+          echo "Found venv at: $VENV_PATH"
+
+      - name: Set ESP-IDF environment globally
+        run: |
+          . /home/runner/esp-idf/export.sh
+          echo "$PATH" | tr ':' '\n' | grep -E "(espressif|esp-idf)" >> $GITHUB_PATH
+          echo "IDF_PATH=/home/runner/esp-idf" >> $GITHUB_ENV
+          which idf.py
+
+      - name: Download libssh source
+        run: |
+          cd libssh && ./install.sh
+          mv libssh-0.11.0 /home/runner/libssh-0.11.0
+
+      - name: Create build script
+        run: |
+          cat > /tmp/build.sh << 'EOF'
+          #!/bin/bash
+          set -e
+          . $ESP_IDF_VENV/activate
+          export IDF_PATH=/home/runner/esp-idf
+          . $IDF_PATH/export.sh 2>/dev/null || true
+          if [ ! -d "libssh/examples/$1" ]; then
+            echo "Example $1 not found in this commit, skipping"
+            exit 0
+          fi
+          # Symlink libssh source (stored outside repo to survive git checkouts)
+          ln -sfn /home/runner/libssh-0.11.0 libssh/libssh-0.11.0
+          cd libssh/examples/$1
+          idf.py build
+          EOF
+          chmod +x /tmp/build.sh
+
+      - name: Run Membrowse Onboard Action
+        env:
+          ESP_IDF_VENV: ${{ env.ESP_IDF_VENV }}
+        uses: membrowse/membrowse-action/onboard-action@v1
+        with:
+          target_name: ${{ matrix.target_name }}
+          num_commits: ${{ github.event.inputs.num_commits }}
+          build_script: /tmp/build.sh ${{ matrix.board }}
+          elf: ${{ matrix.elf }}
+          ld: ${{ matrix.ld }}
+          linker_vars: ${{ matrix.linker_vars }}
+          api_key: ${{ secrets.MEMBROWSE_API_KEY }}
+          api_url: ${{ vars.MEMBROWSE_API_URL }}

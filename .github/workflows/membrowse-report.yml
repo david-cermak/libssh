@@ -1,0 +1,103 @@
+name: Membrowse Memory Report
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  load-targets:
+    runs-on: ubuntu-22.04
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Load target matrix
+        id: set-matrix
+        run: echo "matrix=$(jq -c '.' .github/membrowse-targets.json)" >> $GITHUB_OUTPUT
+
+  build:
+    needs: load-targets
+    runs-on: ubuntu-22.04
+    container: espressif/idf:release-v5.5
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.load-targets.outputs.matrix) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Setup and build
+        shell: bash
+        run: |
+          for i in 1 2 3; do
+            ${{ matrix.setup_cmd }} && break
+            echo "Setup attempt $i failed, retrying..."
+            sleep 5
+          done
+          ${{ matrix.build_cmd }}
+
+      - name: Upload ELF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: elf-${{ matrix.target_name }}
+          path: ${{ matrix.elf }}
+
+  analyze:
+    needs: [load-targets, build]
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.load-targets.outputs.matrix) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Download ELF artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: elf-${{ matrix.target_name }}
+          path: elf-download
+
+      - name: Prepare ELF path
+        id: elf
+        run: |
+          mkdir -p $(dirname "${{ matrix.elf }}")
+          mv elf-download/*.elf "${{ matrix.elf }}"
+          echo "path=${{ matrix.elf }}" >> $GITHUB_OUTPUT
+
+      - name: Run Membrowse PR Action
+        id: analyze
+        continue-on-error: true
+        uses: membrowse/membrowse-action@v1
+        with:
+          target_name: ${{ matrix.target_name }}
+          elf: ${{ steps.elf.outputs.path }}
+          ld: ${{ matrix.ld }}
+          linker_vars: ${{ matrix.linker_vars }}
+          api_key: ${{ secrets.MEMBROWSE_API_KEY }}
+          api_url: ${{ vars.MEMBROWSE_API_URL }}
+          verbose: INFO
+
+      - name: Upload report artifact
+        if: ${{ steps.analyze.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: membrowse-report-${{ matrix.target_name }}
+          path: ${{ steps.analyze.outputs.report_path }}
