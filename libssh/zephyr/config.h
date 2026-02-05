@@ -94,6 +94,12 @@
 /* Define to 1 if you have elliptic curve cryptography */
 #define HAVE_ECC 1
 
+/* Define to 1 if you have ECDH support (required for mbedTLS builds) */
+#define HAVE_ECDH 1
+
+/* Define to 1 if you have Curve25519 support (requires HAVE_ECC) */
+#define HAVE_CURVE25519 1
+
 /* Define to 1 if you have gl_flags as a glob_t struct member */
 /* #define HAVE_GLOB_GL_FLAGS_MEMBER 1 */
 
@@ -200,7 +206,7 @@
 #define HAVE_LIBMBEDCRYPTO 1
 
 /* Define to 1 if you have the `pthread' library (-lpthread). */
-// #define HAVE_PTHREAD 1
+#define HAVE_PTHREAD 1
 
 /* Define to 1 if you have the `cmocka' library (-lcmocka). */
 /* #undef HAVE_CMOCKA */
