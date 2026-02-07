@@ -1,7 +1,20 @@
-Initial version of zephyr version.
+# libssh Zephyr module
 
-# prj.conf fragments
+This module packages the libssh library and its Zephyr adaptation so you can
+build SSH client or server applications as an extra Zephyr module. It also
+includes small socket utility shims used by libssh on Zephyr.
 
+The module is intended to be added via `EXTRA_ZEPHYR_MODULES` and linked into
+your application like any other Zephyr module.
+
+See [sample-app](sample-app/README.md) for a minimal SSH server demo application that uses
+this module.
+
+## Typical `prj.conf` fragments
+
+These fragments are a starting point for a Wi-Fi based SSH server app.
+Tune as needed for your board and memory budget.
+```
 CONFIG_WIFI=y
 CONFIG_INIT_STACKS=y
 CONFIG_NET_L2_WIFI_MGMT=y
@@ -89,3 +102,4 @@ CONFIG_MBEDTLS_USER_CONFIG_FILE="mbedtls_user_config.h"
 CONFIG_SYSTEM_WORKQUEUE_STACK_SIZE=8192
 CONFIG_ISR_STACK_SIZE=4096
 CONFIG_MBEDTLS_DEBUG=y
+```
