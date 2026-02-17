@@ -1,6 +1,7 @@
 #pragma once
 
 #include "esp_idf_version.h"
+#include "sdkconfig.h"
 #include "termios.h"
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 5, 0)
 #include "net/if.h"
@@ -52,3 +53,9 @@ int socketpair(int domain, int type, int protocol, int sv[2]);
 #ifndef VDISCARD
 #define VDISCARD 0
 #endif
+
+#ifndef CONFIG_LWIP_IPV6
+// supply some definitions for IPv6 if not enabled
+#define sockaddr_in6 sockaddr_in
+#define INET6_ADDRSTRLEN INET_ADDRSTRLEN
+#endif // CONFIG_LWIP_IPV6
