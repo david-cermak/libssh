@@ -1,4 +1,4 @@
-set(LIBSSH_VERSION "0.11.0")
+set(LIBSSH_VERSION "0.12.0")
 set(LIBSSH_DIR "libssh-${LIBSSH_VERSION}")
 
 set(libssh_SRCS
@@ -29,12 +29,14 @@ set(libssh_SRCS
   match.c
   messages.c
   misc.c
+  mlkem.c
   options.c
   packet.c
   packet_cb.c
   packet_crypt.c
   pcap.c
   pki.c
+  pki_context.c
   pki_container_openssh.c
   poll.c
   session.c
@@ -44,6 +46,7 @@ set(libssh_SRCS
   threads.c
   ttyopts.c
   wrapper.c
+  gzip.c
   external/bcrypt_pbkdf.c
   external/blowfish.c
   config_parser.c
@@ -62,10 +65,13 @@ ${libssh_SRCS}
     md_mbedcrypto.c
     dh_key.c
     pki_ed25519.c
+    hybrid_mlkem.c
+    sntrup761.c
     external/ed25519.c
     external/fe25519.c
     external/ge25519.c
     external/sc25519.c
+    external/sntrup761.c
 )
 
 set(libssh_SRCS
@@ -90,7 +96,14 @@ ${libssh_SRCS}
 
 set(libssh_SRCS
 ${libssh_SRCS}
+    curve25519_fallback.c
     external/curve25519_ref.c
+)
+
+set(libssh_SRCS
+${libssh_SRCS}
+    mlkem_native.c
+    external/libcrux_mlkem768_sha3.c
 )
 
 list(TRANSFORM libssh_SRCS PREPEND "${LIBSSH_DIR}/src/")
@@ -114,3 +127,4 @@ endif()
 
 set_source_files_properties(${LIBSSH_DIR}/src/external/bcrypt_pbkdf.c PROPERTIES COMPILE_OPTIONS "-Wno-unterminated-string-initialization")
 set_source_files_properties(${LIBSSH_DIR}/src/external/chacha.c PROPERTIES COMPILE_OPTIONS "-Wno-unterminated-string-initialization")
+set_source_files_properties(${LIBSSH_DIR}/src/external/libcrux_mlkem768_sha3.c PROPERTIES COMPILE_OPTIONS "-Wno-declaration-after-statement")

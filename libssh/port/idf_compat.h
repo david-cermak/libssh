@@ -16,6 +16,7 @@ int socketpair(int domain, int type, int protocol, int sv[2]);
 
 // socket utils
 #define PF_UNIX AF_UNIX
+#define NI_NUMERICHOST AI_NUMERICHOST
 
 // termios
 #ifndef IMAXBEL

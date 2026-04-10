@@ -4,14 +4,15 @@
 #define PACKAGE "libssh"
 
 /* Version number of package */
-#define VERSION "0.11.0"
+#define VERSION "0.12.0"
 
 #define SYSCONFDIR "etc"
-#define BINARYDIR "/home/david/repos/libssh-0.11.0/build_minimal"
-#define SOURCEDIR "/home/david/repos/libssh-0.11.0"
+#define BINARYDIR "/home/david/repos/libssh-0.12.0/build_minimal"
+#define SOURCEDIR "/home/david/repos/libssh-0.12.0"
 
 /* Global bind configuration file path */
 #define GLOBAL_BIND_CONFIG "/etc/ssh/libssh_server_config"
+#define GLOBAL_CONF_DIR "/etc/ssh"
 
 /* Global client configuration file path */
 #define GLOBAL_CLIENT_CONFIG "/etc/ssh/ssh_config"
