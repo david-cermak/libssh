@@ -64,13 +64,19 @@ ${libssh_SRCS}
     md_mbedcrypto.c
     dh_key.c
     pki_ed25519.c
-    sntrup761.c
     external/ed25519.c
     external/fe25519.c
     external/ge25519.c
     external/sc25519.c
+)
+
+if(CONFIG_LIBSSH_SNTRUP761)
+set(libssh_SRCS
+${libssh_SRCS}
+    sntrup761.c
     external/sntrup761.c
 )
+endif()
 
 set(libssh_SRCS
 ${libssh_SRCS}

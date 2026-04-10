@@ -1,5 +1,16 @@
+--- libssh-0.12.0/include/libssh/sntrup761.h	2026-02-10 10:35:23.000000000 +0100
++++ libssh-0.12.0/include/libssh/sntrup761.h	2026-04-10 18:22:41.362169147 +0200
+@@ -31,7 +31,7 @@
+ extern "C" {
+ #endif
+
+-#ifdef HAVE_CURVE25519
++#if defined(HAVE_CURVE25519) && !defined(WITHOUT_SNTRUP761)
+ #define HAVE_SNTRUP761 1
+ #endif
+
 --- libssh-0.12.0/src/kex.c	2026-02-10 10:35:23.000000000 +0100
-+++ libssh-0.12.0/src/kex.c	2026-04-10 17:23:06.447556919 +0200
++++ libssh-0.12.0/src/kex.c	2026-04-10 18:10:37.885707940 +0200
 @@ -105,6 +105,7 @@
  #define SNTRUP761X25519 ""
  #endif /* HAVE_SNTRUP761 */
@@ -101,7 +112,7 @@
          k_string = ssh_make_bignum_string(crypto->shared_secret);
          break;
 --- libssh-0.12.0/src/client.c	2026-02-10 10:35:23.000000000 +0100
-+++ libssh-0.12.0/src/client.c	2026-04-10 17:22:01.701215348 +0200
++++ libssh-0.12.0/src/client.c	2026-04-10 18:10:37.885707940 +0200
 @@ -306,6 +306,7 @@
              rc = ssh_client_sntrup761x25519_init(session);
              break;
@@ -119,7 +130,7 @@
              rc = SSH_ERROR;
          }
 --- libssh-0.12.0/src/wrapper.c	2026-02-10 10:35:23.000000000 +0100
-+++ libssh-0.12.0/src/wrapper.c	2026-04-10 17:22:08.481167368 +0200
++++ libssh-0.12.0/src/wrapper.c	2026-04-10 18:10:37.885707940 +0200
 @@ -625,6 +625,7 @@
          ssh_server_sntrup761x25519_init(session);
          break;
