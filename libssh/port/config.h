@@ -260,6 +260,11 @@
 /* Define to 1 if you want to enable calltrace debug output */
 #define DEBUG_CALLTRACE 1
 
+/* Define to 1 if you want to enable ML-KEM hybrid key exchange */
+#ifdef CONFIG_LIBSSH_MLKEM
+#define HAVE_MLKEM 1
+#endif
+
 /* Define to 1 if you want to enable NaCl support */
 /* #undef WITH_NACL */
 

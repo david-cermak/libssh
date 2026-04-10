@@ -29,7 +29,6 @@ set(libssh_SRCS
   match.c
   messages.c
   misc.c
-  mlkem.c
   options.c
   packet.c
   packet_cb.c
@@ -65,7 +64,6 @@ ${libssh_SRCS}
     md_mbedcrypto.c
     dh_key.c
     pki_ed25519.c
-    hybrid_mlkem.c
     sntrup761.c
     external/ed25519.c
     external/fe25519.c
@@ -100,11 +98,15 @@ ${libssh_SRCS}
     external/curve25519_ref.c
 )
 
+if(CONFIG_LIBSSH_MLKEM)
 set(libssh_SRCS
 ${libssh_SRCS}
+    mlkem.c
+    hybrid_mlkem.c
     mlkem_native.c
     external/libcrux_mlkem768_sha3.c
 )
+endif()
 
 list(TRANSFORM libssh_SRCS PREPEND "${LIBSSH_DIR}/src/")
 
@@ -127,4 +129,6 @@ endif()
 
 set_source_files_properties(${LIBSSH_DIR}/src/external/bcrypt_pbkdf.c PROPERTIES COMPILE_OPTIONS "-Wno-unterminated-string-initialization")
 set_source_files_properties(${LIBSSH_DIR}/src/external/chacha.c PROPERTIES COMPILE_OPTIONS "-Wno-unterminated-string-initialization")
+if(CONFIG_LIBSSH_MLKEM)
 set_source_files_properties(${LIBSSH_DIR}/src/external/libcrux_mlkem768_sha3.c PROPERTIES COMPILE_OPTIONS "-Wno-declaration-after-statement")
+endif()
