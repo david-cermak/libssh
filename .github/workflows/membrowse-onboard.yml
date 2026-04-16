@@ -91,6 +91,7 @@ jobs:
           num_commits: ${{ github.event.inputs.num_commits }}
           build_script: /tmp/build.sh ${{ matrix.board }}
           elf: ${{ matrix.elf }}
+          map_file: ${{ matrix.map }}
           ld: ${{ matrix.ld }}
           linker_vars: ${{ matrix.linker_vars }}
           api_key: ${{ secrets.MEMBROWSE_API_KEY }}

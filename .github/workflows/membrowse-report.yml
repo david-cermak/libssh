@@ -7,8 +7,8 @@ on:
       - main
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   load-targets:
@@ -23,7 +23,7 @@ jobs:
         id: set-matrix
         run: echo "matrix=$(jq -c '.' .github/membrowse-targets.json)" >> $GITHUB_OUTPUT
 
-  build:
+  analyze:
     needs: load-targets
     runs-on: ubuntu-22.04
     container: espressif/idf:release-v5.5
@@ -49,55 +49,26 @@ jobs:
           done
           ${{ matrix.build_cmd }}
 
-      - name: Upload ELF artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: elf-${{ matrix.target_name }}
-          path: ${{ matrix.elf }}
-
-  analyze:
-    needs: [load-targets, build]
-    runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        include: ${{ fromJson(needs.load-targets.outputs.matrix) }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - name: Download ELF artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: elf-${{ matrix.target_name }}
-          path: elf-download
-
-      - name: Prepare ELF path
-        id: elf
+      # ESP-IDF container lacks pip and enforces PEP 668; install pip
+      # and allow system-wide packages so membrowse-action can run.
+      # Also mark the workspace as a safe git directory globally so
+      # subprocess git calls from membrowse (which run without the
+      # checkout action's temporary HOME) can read commit metadata.
+      - name: Setup container for Membrowse
         run: |
-          mkdir -p $(dirname "${{ matrix.elf }}")
-          mv elf-download/*.elf "${{ matrix.elf }}"
-          echo "path=${{ matrix.elf }}" >> $GITHUB_OUTPUT
+          apt-get update && apt-get install -y python3-pip
+          python3 -m pip config set global.break-system-packages true
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      - name: Run Membrowse PR Action
-        id: analyze
+      - name: Run Membrowse Analysis
         continue-on-error: true
         uses: membrowse/membrowse-action@v1
         with:
           target_name: ${{ matrix.target_name }}
-          elf: ${{ steps.elf.outputs.path }}
+          elf: ${{ matrix.elf }}
+          map_file: ${{ matrix.map }}
           ld: ${{ matrix.ld }}
           linker_vars: ${{ matrix.linker_vars }}
           api_key: ${{ secrets.MEMBROWSE_API_KEY }}
           api_url: ${{ vars.MEMBROWSE_API_URL }}
           verbose: INFO
-
-      - name: Upload report artifact
-        if: ${{ steps.analyze.outcome == 'success' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: membrowse-report-${{ matrix.target_name }}
-          path: ${{ steps.analyze.outputs.report_path }}
