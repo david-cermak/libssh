@@ -6,6 +6,7 @@
     "setup_cmd": ". ${IDF_PATH}/export.sh && (cd libssh && ./install.sh)",
     "build_cmd": ". ${IDF_PATH}/export.sh && cd libssh/examples/server && idf.py build",
     "elf": "libssh/examples/server/build/server.elf",
+    "map": "libssh/examples/server/build/server.map",
     "ld": "libssh/examples/server/build/esp-idf/esp_system/ld/memory.ld",
     "linker_vars": ""
   },
@@ -16,6 +17,7 @@
     "setup_cmd": ". ${IDF_PATH}/export.sh && (cd libssh && ./install.sh)",
     "build_cmd": ". ${IDF_PATH}/export.sh && cd libssh/examples/esp_ssh && idf.py build",
     "elf": "libssh/examples/esp_ssh/build/server.elf",
+    "map": "libssh/examples/esp_ssh/build/server.map",
     "ld": "libssh/examples/esp_ssh/build/esp-idf/esp_system/ld/memory.ld",
     "linker_vars": ""
   },
@@ -26,6 +28,7 @@
     "setup_cmd": ". ${IDF_PATH}/export.sh && (cd libssh && ./install.sh)",
     "build_cmd": ". ${IDF_PATH}/export.sh && cd libssh/examples/bastion && idf.py build",
     "elf": "libssh/examples/bastion/build/bastion_ssh.elf",
+    "map": "libssh/examples/bastion/build/bastion_ssh.map",
     "ld": "libssh/examples/bastion/build/esp-idf/esp_system/ld/memory.ld",
     "linker_vars": ""
   }
