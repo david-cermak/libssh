@@ -4,14 +4,15 @@
 #define PACKAGE "libssh"
 
 /* Version number of package */
-#define VERSION "0.11.0"
+#define VERSION "0.12.0"
 
 #define SYSCONFDIR "etc"
-#define BINARYDIR "/home/david/repos/libssh-0.11.0/build_minimal"
-#define SOURCEDIR "/home/david/repos/libssh-0.11.0"
+#define BINARYDIR "/home/david/repos/libssh-0.12.0/build_minimal"
+#define SOURCEDIR "/home/david/repos/libssh-0.12.0"
 
 /* Global bind configuration file path */
 #define GLOBAL_BIND_CONFIG "/etc/ssh/libssh_server_config"
+#define GLOBAL_CONF_DIR "/etc/ssh"
 
 /* Global client configuration file path */
 #define GLOBAL_CLIENT_CONFIG "/etc/ssh/ssh_config"
@@ -258,6 +259,16 @@
 
 /* Define to 1 if you want to enable calltrace debug output */
 #define DEBUG_CALLTRACE 1
+
+/* Define to 1 if you want to enable SNTRUP761 hybrid key exchange */
+#ifndef CONFIG_LIBSSH_SNTRUP761
+#define WITHOUT_SNTRUP761 1
+#endif
+
+/* Define to 1 if you want to enable ML-KEM hybrid key exchange */
+#ifdef CONFIG_LIBSSH_MLKEM
+#define HAVE_MLKEM 1
+#endif
 
 /* Define to 1 if you want to enable NaCl support */
 /* #undef WITH_NACL */

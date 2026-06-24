@@ -1,4 +1,4 @@
-set(LIBSSH_VERSION "0.11.0")
+set(LIBSSH_VERSION "0.12.0")
 set(LIBSSH_DIR "libssh-${LIBSSH_VERSION}")
 
 set(libssh_SRCS
@@ -35,6 +35,7 @@ set(libssh_SRCS
   packet_crypt.c
   pcap.c
   pki.c
+  pki_context.c
   pki_container_openssh.c
   poll.c
   session.c
@@ -44,6 +45,7 @@ set(libssh_SRCS
   threads.c
   ttyopts.c
   wrapper.c
+  gzip.c
   external/bcrypt_pbkdf.c
   external/blowfish.c
   config_parser.c
@@ -68,6 +70,14 @@ ${libssh_SRCS}
     external/sc25519.c
 )
 
+if(CONFIG_LIBSSH_SNTRUP761)
+set(libssh_SRCS
+${libssh_SRCS}
+    sntrup761.c
+    external/sntrup761.c
+)
+endif()
+
 set(libssh_SRCS
 ${libssh_SRCS}
     external/chacha.c
@@ -90,8 +100,19 @@ ${libssh_SRCS}
 
 set(libssh_SRCS
 ${libssh_SRCS}
+    curve25519_fallback.c
     external/curve25519_ref.c
 )
+
+if(CONFIG_LIBSSH_MLKEM)
+set(libssh_SRCS
+${libssh_SRCS}
+    mlkem.c
+    hybrid_mlkem.c
+    mlkem_native.c
+    external/libcrux_mlkem768_sha3.c
+)
+endif()
 
 list(TRANSFORM libssh_SRCS PREPEND "${LIBSSH_DIR}/src/")
 
@@ -114,3 +135,6 @@ endif()
 
 set_source_files_properties(${LIBSSH_DIR}/src/external/bcrypt_pbkdf.c PROPERTIES COMPILE_OPTIONS "-Wno-unterminated-string-initialization")
 set_source_files_properties(${LIBSSH_DIR}/src/external/chacha.c PROPERTIES COMPILE_OPTIONS "-Wno-unterminated-string-initialization")
+if(CONFIG_LIBSSH_MLKEM)
+set_source_files_properties(${LIBSSH_DIR}/src/external/libcrux_mlkem768_sha3.c PROPERTIES COMPILE_OPTIONS "-Wno-declaration-after-statement")
+endif()
