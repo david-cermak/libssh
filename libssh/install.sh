@@ -1,35 +1,15 @@
 #!/bin/bash
 
 # libssh installation script
-# This script downloads, extracts, and patches libssh for the ESP-IDF port
+# This script patches the libssh upstream (adds optional MLKEM support)
 
 set -e  # Exit on any error
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Configuration
-LIBSSH_VERSION="0.12.0"
-LIBSSH_URL="https://git.libssh.org/projects/libssh.git/snapshot/libssh-${LIBSSH_VERSION}.tar.xz"
-LIBSSH_DIR="libssh-${LIBSSH_VERSION}"
+LIBSSH_VERSION="mirror"    # Developer's mode
 PATCH_DIR="${SCRIPT_DIR}/patches"
-
-echo "Downloading libssh ${LIBSSH_VERSION}..."
-
-# Download libssh
-if ! wget -q --show-progress "$LIBSSH_URL"; then
-    echo "Failed to download libssh"
-    exit 1
-fi
-
-echo "Extracting libssh..."
-
-# Extract the archive
-if ! tar -xf "libssh-${LIBSSH_VERSION}.tar.xz"; then
-    echo "Failed to extract libssh"
-    exit 1
-fi
-
-rm "libssh-${LIBSSH_VERSION}.tar.xz"
 
 # Apply ESP-IDF port patches
 if [ -d "${PATCH_DIR}" ]; then
