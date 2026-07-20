@@ -2,21 +2,11 @@
 
 [![Membrowse](https://membrowse.com/badge.svg)](https://membrowse.com/public/david-cermak/libssh)
 
-A minimal ESP-IDF port of libssh.
-The purpose of this component is to provide a way to run `sshd` on your ESP32 device, so you can "ssh" into your device.
+Embedded ports of [libssh](https://www.libssh.org/) so you can run `sshd` on your device and SSH into it.
 
-## How to use
+Supported platforms:
 
-Add the libssh subdirectory to your component list, either using IDF build system or by means of the component yaml file:
-```
-dependencies:
-  libssh:
-    version: '*'
-    path: /path/to/the_libssh_directory/
-```
-
-## Example
-
-See the simple server example in [server](libssh/examples/server)
+- **[ESP-IDF](libssh/README.md)** — ESP32-class devices
+- **[Zephyr](zephyr/README.md)** — Zephyr RTOS boards
 
 ![Demo](ssh-demo.gif)
