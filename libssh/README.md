@@ -13,19 +13,24 @@ Minimal ESP-IDF component wrapping upstream libssh to run an SSH server on ESP32
 - Reference projects live in `examples/`.
 
 ### Requirements
-- ESP-IDF v5.x (tested with recent v5 releases).
+- ESP-IDF v5+ (tested with recent v5 and v6 releases).
 - Enable networking (Wi‑Fi or Ethernet) in your project.
 - Recommended: Ed25519 host keys for best performance and security.
 
-### Add to your project (Component Manager)
-Add this dependency to your app's `idf_component.yml`:
+### How to use
+
+Add the libssh subdirectory to your component list, either using the IDF build system or via the component YAML file:
+
+```bash
+idf.py add-dependency david-cermak/libssh
+```
+
+Or pull it from the Component Registry:
 
 ```yaml
 dependencies:
   david-cermak/libssh: "*"
 ```
-
-Or add as a local component via `path` if you vendor the directory into your project.
 
 ### Quick start (examples)
 Build any of the examples under `examples/` using standard ESP-IDF flow:

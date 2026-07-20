@@ -1,0 +1,45 @@
+name: version-check
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  check_version:
+    name: Check version consistency
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare idf_component.yml and libssh_version.h
+        shell: bash
+        run: |
+          set -euo pipefail
+          HDR=libssh/port/libssh/libssh_version.h
+          YML=libssh/idf_component.yml
+
+          major=$(sed -n 's/^#define LIBSSH_VERSION_MAJOR[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$HDR")
+          minor=$(sed -n 's/^#define LIBSSH_VERSION_MINOR[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$HDR")
+          micro=$(sed -n 's/^#define LIBSSH_VERSION_MICRO[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$HDR")
+          hdr_ver="${major}.${minor}.${micro}"
+
+          yml_ver=$(sed -n 's/^version:[[:space:]]*"\([^"]*\)".*/\1/p' "$YML")
+          # Component registry may use "0.12.0~1"; compare the semver before '~'
+          yml_base=${yml_ver%%~*}
+
+          echo "libssh_version.h: ${hdr_ver}"
+          echo "idf_component.yml: ${yml_ver} (base ${yml_base})"
+
+          if [[ -z "$major" || -z "$minor" || -z "$micro" || -z "$yml_base" ]]; then
+            echo "::error::Failed to parse version from $HDR or $YML"
+            exit 1
+          fi
+
+          if [[ "$hdr_ver" != "$yml_base" ]]; then
+            echo "::error::Version mismatch: ${HDR} has ${hdr_ver}, ${YML} has ${yml_ver}"
+            exit 1
+          fi
+
+          echo "Versions match."
