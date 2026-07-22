@@ -1,5 +1,11 @@
 See the upstream [CHANGELOG](libssh-mirror/CHANGELOG)
 
+0.12.0~3
+- Based on upstream master branch (HEAD)
+- Includes all 0.12.x security fixes
+- Includes mbedtls-v4 support
+- See upstream [CHANGELOG](libssh-mirror/CHANGELOG)
+
 0.12.0~2
 - See upstream changes 0.12.0
 - ESP-IDF: Add SBOM-yml
