@@ -1,5 +1,8 @@
 See the upstream [CHANGELOG](libssh-mirror/CHANGELOG)
 
+0.12.1
+- See upstram changes 0.12.1 (security fixes, compat issues)
+
 0.12.0~2
 - See upstream changes 0.12.0
 - ESP-IDF: Add SBOM-yml
