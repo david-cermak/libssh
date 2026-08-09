@@ -1,4 +1,4 @@
-version: "0.12.0~3"
+version: "0.12.2"
 url: https://github.com/david-cermak/libssh
 license: LGPL-2.1
 description: The component provides a general purpose SSH connectivity

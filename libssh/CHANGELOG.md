@@ -1,5 +1,9 @@
 See the upstream [CHANGELOG](libssh-mirror/CHANGELOG)
 
+0.12.2
+- Based on upstream tag libssh-0.12.2
+- Manually patches upstream to include mbedtls-v4 support (ac4b723c)
+
 0.12.0~3
 - Based on upstream master branch (HEAD)
 - Includes mbedtls-v4 support
